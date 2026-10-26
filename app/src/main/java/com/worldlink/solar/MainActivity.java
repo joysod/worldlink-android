@@ -8,14 +8,18 @@ import android.webkit.WebViewClient;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.CookieManager;
-import android.view.KeyEvent;
 import android.webkit.WebResourceRequest;
-import android.content.Intent;
+import android.webkit.ValueCallback;
+import android.webkit.GeolocationPermissions;
 import android.net.Uri;
+import android.content.Intent;
+import android.content.ActivityNotFoundException;
 
 public class MainActivity extends Activity {
 
     private WebView webView;
+    private ValueCallback<Uri[]> fileUploadCallback;
+    private static final int FILE_CHOOSER_REQUEST = 1001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,9 +50,59 @@ public class MainActivity extends Activity {
             }
         });
 
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+
+            @Override
+            public boolean onShowFileChooser(
+                    WebView view,
+                    ValueCallback<Uri[]> filePathCallback,
+                    FileChooserParams fileChooserParams) {
+
+                if (fileUploadCallback != null) {
+                    fileUploadCallback.onReceiveValue(null);
+                }
+
+                fileUploadCallback = filePathCallback;
+
+                try {
+                    Intent intent = fileChooserParams.createIntent();
+                    startActivityForResult(
+                        intent, FILE_CHOOSER_REQUEST
+                    );
+                    return true;
+
+                } catch (ActivityNotFoundException e) {
+                    fileUploadCallback.onReceiveValue(null);
+                    fileUploadCallback = null;
+                    return false;
+                }
+            }
+
+            @Override
+            public void onGeolocationPermissionsShowPrompt(
+                    String origin,
+                    GeolocationPermissions.Callback callback) {
+                callback.invoke(origin, false, false);
+            }
+        });
 
         webView.loadUrl("http://78.159.103.149:8081/");
+    }
+
+    @Override
+    protected void onActivityResult(
+            int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == FILE_CHOOSER_REQUEST
+                && fileUploadCallback != null) {
+
+            Uri[] results = WebChromeClient.FileChooserParams
+                    .parseResult(resultCode, data);
+
+            fileUploadCallback.onReceiveValue(results);
+            fileUploadCallback = null;
+        }
     }
 
     @Override
@@ -58,5 +112,20 @@ public class MainActivity extends Activity {
         } else {
             super.onBackPressed();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (fileUploadCallback != null) {
+            fileUploadCallback.onReceiveValue(null);
+            fileUploadCallback = null;
+        }
+
+        if (webView != null) {
+            webView.destroy();
+            webView = null;
+        }
+
+        super.onDestroy();
     }
 }
