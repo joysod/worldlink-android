@@ -109,7 +109,7 @@ public class MainActivity extends Activity {
         webView.loadUrl("http://78.159.103.149:8081/");
     }
 
-    private void openGallery(FileChooserParams params) {
+    private void openGallery(WebChromeClient.FileChooserParams params) {
         try {
             Intent intent = params.createIntent();
             startActivityForResult(intent, GALLERY_REQUEST);
