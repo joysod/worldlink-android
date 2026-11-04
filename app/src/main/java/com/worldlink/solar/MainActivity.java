@@ -106,7 +106,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        webView.loadUrl("http://78.159.103.149:8081/");
+        webView.loadUrl("http://78.159.103.149:8082/");
     }
 
     private void openGallery(WebChromeClient.FileChooserParams params) {
